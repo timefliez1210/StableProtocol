@@ -14,6 +14,7 @@ contract BaseTest is Test, Utils {
     address[5] users;
 
     Stable stable;
+
     function setUp() public {
         owner = makeAddr("owner");
         vm.prank(owner);
@@ -24,7 +25,7 @@ contract BaseTest is Test, Utils {
     }
 
     function makeUsers(uint256 _userCount) internal {
-        for(uint256 i = 1; i < _userCount; i++) {
+        for (uint256 i = 1; i < _userCount; i++) {
             string memory user = string.concat("depositor", Strings.toString(i));
             users[i] = makeAddr(user);
             weth.mint(users[i], 10e18);

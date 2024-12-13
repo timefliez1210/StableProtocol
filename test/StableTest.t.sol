@@ -5,20 +5,21 @@ pragma solidity 0.8.28;
 import {BaseTest} from "./utils/BaseTest.t.sol";
 
 contract StableTest is BaseTest {
-
     function test_whitelistNotOwner() public {
         vm.startPrank(users[1]);
         vm.expectRevert();
         stable.whitelistTokens(address(weth));
         vm.stopPrank();
     }
+
     function test_fuzz_depositEtherSuccess(uint256 amount) public {
         vm.assume(amount <= 10e18);
         vm.assume(amount > MIN_DEPOSIT_ETH);
         assertEq(users[1].balance, 10e18);
         assertEq(address(stable).balance, 0);
         vm.startPrank(users[1]);
-        (bool success,) = address(stable).call{value: amount}(abi.encodeWithSignature("deposit(address,uint256)", ETHER, 0));
+        (bool success,) =
+            address(stable).call{value: amount}(abi.encodeWithSignature("deposit(address,uint256)", ETHER, 0));
         vm.stopPrank();
         assertEq(users[1].balance, 10e18 - amount);
         assertEq(address(stable).balance, amount);
@@ -31,7 +32,8 @@ contract StableTest is BaseTest {
         assertEq(address(stable).balance, 0);
         vm.startPrank(users[1]);
         vm.expectRevert();
-        (bool success,) = address(stable).call{value: amount}(abi.encodeWithSignature("deposit(address,uint256)", ETHER, 0));
+        (bool success,) =
+            address(stable).call{value: amount}(abi.encodeWithSignature("deposit(address,uint256)", ETHER, 0));
         vm.stopPrank();
         assertEq(users[1].balance, 10e18);
         assertEq(address(stable).balance, 0);
@@ -85,7 +87,8 @@ contract StableTest is BaseTest {
         whitelistTokens();
         vm.startPrank(users[i]);
         stable.deposit(address(weth), amountERC20);
-        (bool success,) = address(stable).call{value: amountEther}(abi.encodeWithSignature("deposit(address,uint256)", ETHER, 0));
+        (bool success,) =
+            address(stable).call{value: amountEther}(abi.encodeWithSignature("deposit(address,uint256)", ETHER, 0));
         vm.stopPrank();
         assertEq(weth.balanceOf(users[i]), 10e18 - amountERC20);
         assertEq(stable.getTotalBalance(address(weth)), amountERC20);
@@ -104,7 +107,7 @@ contract StableTest is BaseTest {
         assertEq(stable.getTotalBalance(ETHER), 0);
         assertEq(stable.getUserBalance(users[i], ETHER), 0);
     }
-    
+
     function test_fuzz_withdrawFailExceedsBalanceERC20(uint256 i, uint256 amountERC20, uint256 amountEther) public {
         i = bound(i, 1, 4);
         amountERC20 = bound(amountERC20, 1, 10e18);
@@ -112,7 +115,8 @@ contract StableTest is BaseTest {
         whitelistTokens();
         vm.startPrank(users[i]);
         stable.deposit(address(weth), amountERC20);
-        (bool success,) = address(stable).call{value: amountEther}(abi.encodeWithSignature("deposit(address,uint256)", ETHER, 0));
+        (bool success,) =
+            address(stable).call{value: amountEther}(abi.encodeWithSignature("deposit(address,uint256)", ETHER, 0));
         vm.stopPrank();
         assertEq(weth.balanceOf(users[i]), 10e18 - amountERC20);
         assertEq(stable.getTotalBalance(address(weth)), amountERC20);
@@ -123,7 +127,7 @@ contract StableTest is BaseTest {
         vm.startPrank(users[i]);
         stable.withdraw(ETHER, amountEther);
         vm.expectRevert();
-        stable.withdraw(address(weth), amountERC20 +5);
+        stable.withdraw(address(weth), amountERC20 + 5);
         vm.stopPrank();
         assertEq(weth.balanceOf(users[i]), 10e18 - amountERC20);
         assertEq(stable.getTotalBalance(address(weth)), amountERC20);
@@ -140,7 +144,8 @@ contract StableTest is BaseTest {
         whitelistTokens();
         vm.startPrank(users[i]);
         stable.deposit(address(weth), amountERC20);
-        (bool success,) = address(stable).call{value: amountEther}(abi.encodeWithSignature("deposit(address,uint256)", ETHER, 0));
+        (bool success,) =
+            address(stable).call{value: amountEther}(abi.encodeWithSignature("deposit(address,uint256)", ETHER, 0));
         vm.stopPrank();
         assertEq(weth.balanceOf(users[i]), 10e18 - amountERC20);
         assertEq(stable.getTotalBalance(address(weth)), amountERC20);
