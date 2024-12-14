@@ -11,6 +11,7 @@ abstract contract Utils is MockOracle {
     uint256 public constant MIN_DEPOSIT_ETH = 1e6;
     address owner;
 
+    address[] allowlist;
     mapping(address asset => bool isAllowed) public s_whitelist;
     // @todo have a look into: if we should update this with minting/burning for Proof of Colleteral (?)
     mapping(address asset => uint256 balance) public s_totalAssetBalances;

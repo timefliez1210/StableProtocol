@@ -14,6 +14,8 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
  * @author 0xTimefliez https://github.com/timefliez1210
  * @notice
  */
+// @todo currently user cant withdraw posted colleteral at all, after fixing those nasty loops
+// add a healthfactor check in withdraw to allow withdrawing in case of overcolleteralization
 contract Stable is Utils, Lending {
     using SafeERC20 for IERC20;
 
@@ -79,6 +81,7 @@ contract Stable is Utils, Lending {
     ////////////////////////////////////////////////////////////////////////////////
     function whitelistTokens(address _token) external onlyOwner {
         s_whitelist[_token] = true;
+        allowlist.push(_token);
     }
 
     ////////////////////////////////////////////////////////////////////////////////
