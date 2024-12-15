@@ -19,7 +19,6 @@ abstract contract Utils is MockOracle {
 
     address[] allowlist;
     mapping(address asset => bool isAllowed) public s_whitelist;
-    // @todo have a look into: if we should update this with minting/burning for Proof of Colleteral (?)
     mapping(address asset => uint256 balance) public s_totalAssetBalances;
     mapping(address user => uint256 sUSDMinted) s_sUSDBalanceUser;
     mapping(address user => mapping(address asset => uint256 userBalance)) public s_userBalances;

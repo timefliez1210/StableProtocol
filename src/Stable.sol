@@ -86,15 +86,15 @@ contract Stable is Utils, StableLending {
     ////////////////////////////////////////////////////////////////////////////////
     ///////////////////////// Public Getter Functions //////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
-    function isWhitelisted(address _token) public view returns (bool) {
+    function isWhitelisted(address _token) external view returns (bool) {
         return s_whitelist[_token];
     }
 
-    function getTotalBalance(address _asset) public view returns (uint256) {
+    function getTotalBalance(address _asset) external view returns (uint256) {
         return s_totalAssetBalances[_asset];
     }
 
-    function getUserBalance(address _user, address _asset) public view returns (uint256) {
+    function getUserBalance(address _user, address _asset) external view returns (uint256) {
         return s_userBalances[_user][_asset];
     }
 }

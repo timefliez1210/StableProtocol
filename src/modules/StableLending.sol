@@ -17,7 +17,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * major currencies (WETH, WBTC, etc.). We offer a high LTV on these assets but enforce extremly strict liquidation.
  * Multi-Asset Colleteralization IS supported, which allows to shift the colleteral from e.g. WETH to WBTC or higher the colleteraliztion
  * in other supported assets.
- * @dev this contract never directly transfers funds out (only mints!) withdrawals are only supported though Stable.sol
+ * @dev this contract never directly transfers funds out (only mints!) withdrawals are only supported though Stable.sol (except liquidations)
  */
 abstract contract StableLending is Utils {
     using SafeERC20 for IERC20;
@@ -47,6 +47,7 @@ abstract contract StableLending is Utils {
     ////////////////////////////////////////////////////////////////////////////////
 
     mapping(address user => address[] depositedColleteral) s_depositedColleteralsByUser;
+    mapping(address asset => uint256 amount) s_backingAssets;
 
     constructor() {
         i_susd = new StableUSD(address(this));
@@ -59,6 +60,7 @@ abstract contract StableLending is Utils {
     //////////////////////////////
     //// State Changing Functions
     //////////////////////////////
+    // @todo maybe refactor this so the user does not have to deposit 100% of asset colleteral
     function mintStable(uint256 _amount, address[] calldata _colleteral) external {
         if (_amount == 0) {
             revert CanNotMintZero();
@@ -67,6 +69,9 @@ abstract contract StableLending is Utils {
         uint256 healthFactor = _getHealthFactor(totalUsdValueUser, _amount);
         if (healthFactor < 100) {
             revert TooHighAsk(_amount);
+        }
+        for (uint256 i; i < _colleteral.length; i++) {
+            s_backingAssets[_colleteral[i]] += s_userBalances[msg.sender][_colleteral[i]];
         }
         _shiftColleteralAssets(_colleteral);
         s_sUSDBalanceUser[msg.sender] += _amount;
@@ -93,8 +98,6 @@ abstract contract StableLending is Utils {
         if (_amount > s_userLiabilities[msg.sender][_asset]) {
             revert AmountExceedsLiability(_asset, s_userLiabilities[msg.sender][_asset], _amount);
         }
-        // We dont need to check if 0 or _amount > amountColleteral is passed
-        // since we deal with uint, it would revert here anyhow
         uint256 usdAssetValue = _getUSDAssetValue(_asset);
         uint256 usdValueToWithdraw = _amount * usdAssetValue;
         address[] memory assets = s_depositedColleteralsByUser[msg.sender];
@@ -103,8 +106,8 @@ abstract contract StableLending is Utils {
         uint256 healthFactor = _getHealthFactor(potentialUsdValue, s_sUSDBalanceUser[msg.sender]);
         if (healthFactor > 100) {
             // Effects
+            s_backingAssets[_asset] -= _amount;
             s_userLiabilities[msg.sender][_asset] -= _amount;
-            // Interactions
             s_userBalances[msg.sender][_asset] += _amount;
         } else {
             revert TooHighAsk(_amount);
@@ -112,9 +115,6 @@ abstract contract StableLending is Utils {
     }
 
     // @todo this liquidation logic sucks smh, gotta revisit that
-    // @todo we can check the asset with the lowest health factor and start liquidation there
-    // We would need to sort the array into the least healthiest position at the last entry and
-    // do a cascading liquidation downwards the array
     function liquidatePosition(address _user) external nonReentrant {
         uint256 totalUsdValueUser = _getUserPositionsValue(_user);
         uint256 sUsdMintedUser = s_sUSDBalanceUser[_user];
@@ -124,13 +124,20 @@ abstract contract StableLending is Utils {
             s_sUSDBalanceUser[_user] = 0;
             // Interactions
             IERC20(i_susd).safeTransferFrom(msg.sender, address(this), sUsdMintedUser);
-            for (uint256 i; i < allowlist.length; i++) {
+            for (uint256 i; i < s_depositedColleteralsByUser[_user].length; i++) {
                 //Effects
-                uint256 amountToSend = s_userLiabilities[_user][allowlist[i]];
-                s_userLiabilities[_user][allowlist[i]] = 0;
+                uint256 amountToSend = s_userLiabilities[_user][s_depositedColleteralsByUser[_user][i]];
+                s_userLiabilities[_user][s_depositedColleteralsByUser[_user][i]] = 0;
                 //Interactions
                 if (amountToSend > 0) {
-                    IERC20(allowlist[i]).safeTransfer(msg.sender, amountToSend);
+                    if (s_depositedColleteralsByUser[_user][i] == ETHER) {
+                        s_backingAssets[ETHER] -= s_userLiabilities[_user][s_depositedColleteralsByUser[_user][i]];
+                        (bool success,) = payable(msg.sender).call{value: amountToSend}("");
+                        require(success, "Failed to send ether");
+                    } else {
+                        s_backingAssets[ETHER] -= s_userLiabilities[_user][s_depositedColleteralsByUser[_user][i]];
+                        IERC20(s_depositedColleteralsByUser[_user][i]).safeTransfer(msg.sender, amountToSend);
+                    }
                 }
             }
             i_susd.burn(sUsdMintedUser);
@@ -152,7 +159,18 @@ abstract contract StableLending is Utils {
         }
     }
 
-    function getSusdColleteralization() external view returns (uint256) {}
+    function getStableLendingHealthFactor() external view returns (uint256) {
+        uint256 totalUsdValue;
+        for (uint256 i; i < allowlist.length; i++) {
+            address asset = allowlist[i];
+            uint256 totalAmountAsset = s_backingAssets[asset];
+            uint256 usdValueAsset = _getUSDAssetValue(asset);
+            totalUsdValue += totalAmountAsset * usdValueAsset;
+        }
+        uint256 totalSUSDMinted = i_susd.totalSupply();
+        uint256 healthFactor = _getHealthFactor(totalUsdValue, totalSUSDMinted);
+        return healthFactor;
+    }
 
     ////////////////////////////////////////////////////////////////////////////////
     ///////////////////////// Internal Helper Functions ////////////////////////////
