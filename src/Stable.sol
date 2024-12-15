@@ -11,10 +11,9 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 /**
  * @title Decentralized Stablecoin with mixed over-collateralisation
  * @author 0xTimefliez https://github.com/timefliez1210
- * @notice
+ * @notice Entry logic, only handles direct deposits and withdraws, as well as admin functionality. All other Abstracts do not 
+ * interact with users in a way of receiving or sending funds (except liquidations)
  */
-// @todo currently user cant withdraw posted colleteral at all, after fixing those nasty loops
-// add a healthfactor check in withdraw to allow withdrawing in case of overcolleteralization
 contract Stable is Utils, StableLending {
     using SafeERC20 for IERC20;
 
@@ -33,6 +32,7 @@ contract Stable is Utils, StableLending {
     ////////////////////////////////////////////////////////////////////////////////
     /**
      * @dev deposit functionality for all whitelisted ERC20s and Ether, also entrypoint for all accounting
+     * @notice call this function to deposit assets and start earning interest
      * @param _asset address of the asset to deposit, user 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE for native Ether
      * @param _amount amount of an asset to deposit, use 0 for depositing ether
      */
@@ -52,6 +52,13 @@ contract Stable is Utils, StableLending {
         }
     }
 
+    /**
+     * @dev should be reentrancy and read-only-reentrancy safe via mutex lock
+     * for the remote possibility that StableLending has some quirks in the state
+     * @notice call this to withdraw your funds from the protocol
+     * @param _asset address of asset to withdraw
+     * @param _amount amount of an asset to withdraw
+     */
     function withdraw(address _asset, uint256 _amount) external nonReentrant {
         // Checks
         if (_amount > s_userBalances[msg.sender][_asset]) {

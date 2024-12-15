@@ -7,7 +7,7 @@ import {StableUSD} from "../tokens/StableUSD.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-// @todo gotta implement interest, and liquidation fees
+// @todo gotta implement interest and liquidation fees
 // @todo find better ways as thos mucho mucho loops
 /**
  * @title StableLending
@@ -60,7 +60,14 @@ abstract contract StableLending is Utils {
     //////////////////////////////
     //// State Changing Functions
     //////////////////////////////
-    // @todo maybe refactor this so the user does not have to deposit 100% of asset colleteral
+
+    // @todo gotta refactor the function so the user can choose colleteral amounts
+    /**
+     * @dev Invariant: a user should never be able to mint below a healthFactor of 100
+     * @notice use this function to _mint sUSD or to increase your colleteralization/increase your Health Factor
+     * @param _amount amount of sUSD the user wants to mint
+     * @param _colleteral array of colleteral address to move from balance -> liabilities backing the position
+     */
     function mintStable(uint256 _amount, address[] calldata _colleteral) external {
         if (_amount == 0) {
             revert CanNotMintZero();
@@ -78,7 +85,11 @@ abstract contract StableLending is Utils {
         i_susd.mint(msg.sender, _amount);
     }
 
-    // @todo find a better way to track user locked colleteral to unlock assets (?)
+    /**
+     * @dev handles the burn mechanism
+     * @notice use this function to increase your health factor and unwind positions.
+     * @param _amount amount of sUSD to burn
+     */
     function repayStable(uint256 _amount) external {
         if (_amount == 0) {
             revert CanNotBurnZero();
@@ -91,6 +102,13 @@ abstract contract StableLending is Utils {
         i_susd.burn(_amount);
     }
 
+    /**
+     * @dev critical function, any misbehaviour here would cause protocol insolvency or
+     * loss of user funds.
+     * @notice call this to unlock assets for withdrawal or other operations.
+     * @param _asset address of asset to move back into balance
+     * @param _amount amount of an asset to move back into balance
+     */
     function unlockColleteral(address _asset, uint256 _amount) external nonReentrant {
         if (_amount == 0) {
             revert CanNotUnlockZero();
@@ -114,7 +132,12 @@ abstract contract StableLending is Utils {
         }
     }
 
-    // @todo this liquidation logic sucks smh, gotta revisit that
+    /**
+     * @dev this function is the bread and butter. For the sake of protocol solvency
+     * and peg of sUSD this function must work under all circumstances. Any failure is critical.
+     * @notice call this to liquidate users and claim their colleteral minus a protocol fee
+     * @param _user user address to liquidate
+     */
     function liquidatePosition(address _user) external nonReentrant {
         uint256 totalUsdValueUser = _getUserPositionsValue(_user);
         uint256 sUsdMintedUser = s_sUSDBalanceUser[_user];
@@ -149,6 +172,11 @@ abstract contract StableLending is Utils {
     //////////////////////////////
     //// View Functions
     //////////////////////////////
+
+    /**
+     * @dev Use this to effectively query possible liquidations.
+     * @param _user user address to query for possible Liquidation.
+     */
     function isLiquidatable(address _user) external view returns (bool) {
         uint256 userUsdValue = _getUserPositionsValue(_user);
         uint256 healthFactor = _getHealthFactor(userUsdValue, s_sUSDBalanceUser[_user]);
@@ -158,7 +186,10 @@ abstract contract StableLending is Utils {
             return true;
         }
     }
-
+    /**
+     * @dev returns the Health Factor of StableLending in entirety. 
+     * Basically a proof of colleteralization.
+     */
     function getStableLendingHealthFactor() external view returns (uint256) {
         uint256 totalUsdValue;
         for (uint256 i; i < allowlist.length; i++) {
