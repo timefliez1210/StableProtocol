@@ -3,11 +3,10 @@
 pragma solidity 0.8.28;
 
 import {Utils} from "./Utils.sol";
-import {Lending} from "./modules/Lending.sol";
+import {StableLending} from "./modules/StableLending.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-
 
 /**
  * @title Decentralized Stablecoin with mixed over-collateralisation
@@ -16,7 +15,7 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
  */
 // @todo currently user cant withdraw posted colleteral at all, after fixing those nasty loops
 // add a healthfactor check in withdraw to allow withdrawing in case of overcolleteralization
-contract Stable is Utils, Lending {
+contract Stable is Utils, StableLending {
     using SafeERC20 for IERC20;
 
     error NotWhitelistedAsset(address);
@@ -55,7 +54,7 @@ contract Stable is Utils, Lending {
 
     function withdraw(address _asset, uint256 _amount) external nonReentrant {
         // Checks
-        if(_amount > s_userBalances[msg.sender][_asset]) {
+        if (_amount > s_userBalances[msg.sender][_asset]) {
             revert AmountExceedsUserBalance(_amount, s_userBalances[msg.sender][_asset]);
         }
         if (_asset == ETHER) {
@@ -98,6 +97,4 @@ contract Stable is Utils, Lending {
     function getUserBalance(address _user, address _asset) public view returns (uint256) {
         return s_userBalances[_user][_asset];
     }
-
-    
 }

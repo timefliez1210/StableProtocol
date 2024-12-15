@@ -29,7 +29,7 @@ contract LendingTest is BaseTest {
         whitelistTokens();
         colleterals.push(address(weth));
         colleterals.push(address(wbtc));
-        for(uint256 i = 1; i < users.length; i++) {
+        for (uint256 i = 1; i < users.length; i++) {
             vm.startPrank(users[i]);
             stable.deposit(address(weth), 2e18);
             stable.deposit(address(wbtc), 1e18);

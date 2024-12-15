@@ -4,6 +4,12 @@ pragma solidity 0.8.28;
 
 import {MockOracle} from "./mocks/MockOracle.sol";
 
+/**
+ * @title Global State Provider
+ * @author 0xTimefliez https://github.com/timefliez1210
+ * @notice This abstract inherits into Stable.sol, StableLending.sol and DynamicLending.sol
+ * to provide a global accessable state between those modules.
+ */
 abstract contract Utils is MockOracle {
     error NotOwner(address);
 
@@ -18,7 +24,6 @@ abstract contract Utils is MockOracle {
     mapping(address user => uint256 sUSDMinted) s_sUSDBalanceUser;
     mapping(address user => mapping(address asset => uint256 userBalance)) public s_userBalances;
     mapping(address user => mapping(address asset => uint256 liability)) public s_userLiabilities;
-
 
     ////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////// Reusable modifiers ///////////////////////////////
