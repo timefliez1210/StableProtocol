@@ -59,12 +59,13 @@ abstract contract StableLending is Utils {
     //// State Changing Functions
     //////////////////////////////
 
-    // @todo gotta refactor the function so the user can choose colleteral amounts
     /**
      * @dev Invariant: a user should never be able to mint below a healthFactor of 100
      * @notice use this function to _mint sUSD or to increase your colleteralization/increase your Health Factor
      * @param _amountToMint amount of sUSD the user wants to mint
+     * @param _amountColleteral array of colleteral amounts to move from balance -> liabilities backing the position
      * @param _colleteral array of colleteral address to move from balance -> liabilities backing the position
+     * Important: the order of the colleteral and amounts must match => colleteral[0] => amountColleteral[0]
      */
     function mintStable(uint256 _amountToMint, uint256[] calldata _amountColleteral, address[] calldata _colleteral)
         external
@@ -72,16 +73,17 @@ abstract contract StableLending is Utils {
         uint256 totalUsdValueUser;
         for (uint256 i; i < _colleteral.length; i++) {
             uint256 usdValueAsset = _getUSDAssetValue(_colleteral[i]);
+            // @todo add this into the struct and finish refactor
+            s_depositedColleteralsByUser[msg.sender].push(_colleteral[i]);
             totalUsdValueUser += _amountColleteral[i] * usdValueAsset;
+            s_lendingPositions[msg.sender].s_collateral[_colleteral[i]] += _amountColleteral[i];
+            s_userBalances[msg.sender][_colleteral[i]] -= _amountColleteral[i];
         }
         uint256 healthFactor = _getHealthFactor(totalUsdValueUser, _amountToMint);
         if (healthFactor < 100) {
             revert TooHighAsk(_amountToMint);
         }
-        for (uint256 i; i < _colleteral.length; i++) {
-            s_lendingPositions[msg.sender].s_collateral[_colleteral[i]] += _amountColleteral[i];
-            s_userBalances[msg.sender][_colleteral[i]] -= _amountColleteral[i];
-        }
+
         s_lendingPositions[msg.sender].isStableLending = true;
         s_lendingPositions[msg.sender].sUsdMinted += _amountToMint;
         i_susd.mint(msg.sender, _amountToMint);
@@ -162,11 +164,11 @@ abstract contract StableLending is Utils {
                         IERC20(s_depositedColleteralsByUser[_user][i]).safeTransfer(msg.sender, amountToSend);
                     }
                 }
-            }
-            i_susd.burn(sUsdMintedUser);
+            }    
         } else {
             revert UserPositionHealthy(healthFactor);
         }
+        i_susd.burn(sUsdMintedUser);
     }
 
     //////////////////////////////
@@ -177,7 +179,7 @@ abstract contract StableLending is Utils {
      * @dev Use this to effectively query possible liquidations.
      * @param _user user address to query for possible Liquidation.
      */
-    function isLiquidatable(address _user) external view returns (bool) {
+    function isLiquidatable(address _user) external view returns (bool)  {
         uint256 userUsdValue = _getUserPositionsValue(_user);
         uint256 healthFactor = _getHealthFactor(userUsdValue, s_lendingPositions[_user].sUsdMinted);
         if (healthFactor > LIQUIDATION_THRESHOLD) {
