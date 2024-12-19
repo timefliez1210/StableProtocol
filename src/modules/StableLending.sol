@@ -27,7 +27,6 @@ abstract contract StableLending is Utils {
     ////////////////////////////////////////////////////////////////////////////////
     error NotSupportedAsset(address);
     error TooHighAsk(uint256);
-    error CanNotMintZero();
     error CanNotBurnZero();
     error CanNotBurnMoreThanBalance(uint256);
     error UserPositionHealthy(uint256);
@@ -45,7 +44,6 @@ abstract contract StableLending is Utils {
     ////////////////////////////////////////////////////////////////////////////////
     //////////////////////// Mutable State Vaiables ////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
-
     mapping(address user => address[] depositedColleteral) s_depositedColleteralsByUser;
     mapping(address asset => uint256 amount) s_backingAssets;
 
@@ -65,24 +63,28 @@ abstract contract StableLending is Utils {
     /**
      * @dev Invariant: a user should never be able to mint below a healthFactor of 100
      * @notice use this function to _mint sUSD or to increase your colleteralization/increase your Health Factor
-     * @param _amount amount of sUSD the user wants to mint
+     * @param _amountToMint amount of sUSD the user wants to mint
      * @param _colleteral array of colleteral address to move from balance -> liabilities backing the position
      */
-    function mintStable(uint256 _amount, address[] calldata _colleteral) external {
-        if (_amount == 0) {
-            revert CanNotMintZero();
+    function mintStable(uint256 _amountToMint, uint256[] calldata _amountColleteral, address[] calldata _colleteral)
+        external
+    {
+        uint256 totalUsdValueUser;
+        for (uint256 i; i < _colleteral.length; i++) {
+            uint256 usdValueAsset = _getUSDAssetValue(_colleteral[i]);
+            totalUsdValueUser += _amountColleteral[i] * usdValueAsset;
         }
-        uint256 totalUsdValueUser = _getAccumulatedAssetValue(_colleteral);
-        uint256 healthFactor = _getHealthFactor(totalUsdValueUser, _amount);
+        uint256 healthFactor = _getHealthFactor(totalUsdValueUser, _amountToMint);
         if (healthFactor < 100) {
-            revert TooHighAsk(_amount);
+            revert TooHighAsk(_amountToMint);
         }
         for (uint256 i; i < _colleteral.length; i++) {
-            s_backingAssets[_colleteral[i]] += s_userBalances[msg.sender][_colleteral[i]];
+            s_lendingPositions[msg.sender].s_collateral[_colleteral[i]] += _amountColleteral[i];
+            s_userBalances[msg.sender][_colleteral[i]] -= _amountColleteral[i];
         }
-        _shiftColleteralAssets(_colleteral);
-        s_sUSDBalanceUser[msg.sender] += _amount;
-        i_susd.mint(msg.sender, _amount);
+        s_lendingPositions[msg.sender].isStableLending = true;
+        s_lendingPositions[msg.sender].sUsdMinted += _amountToMint;
+        i_susd.mint(msg.sender, _amountToMint);
     }
 
     /**
@@ -94,10 +96,10 @@ abstract contract StableLending is Utils {
         if (_amount == 0) {
             revert CanNotBurnZero();
         }
-        if (_amount > s_sUSDBalanceUser[msg.sender]) {
-            revert CanNotBurnMoreThanBalance(s_sUSDBalanceUser[msg.sender]);
+        if (_amount > s_lendingPositions[msg.sender].sUsdMinted) {
+            revert CanNotBurnMoreThanBalance(s_lendingPositions[msg.sender].sUsdMinted);
         }
-        s_sUSDBalanceUser[msg.sender] -= _amount;
+        s_lendingPositions[msg.sender].sUsdMinted -= _amount;
         IERC20(i_susd).safeTransferFrom(msg.sender, address(this), _amount);
         i_susd.burn(_amount);
     }
@@ -113,19 +115,19 @@ abstract contract StableLending is Utils {
         if (_amount == 0) {
             revert CanNotUnlockZero();
         }
-        if (_amount > s_userLiabilities[msg.sender][_asset]) {
-            revert AmountExceedsLiability(_asset, s_userLiabilities[msg.sender][_asset], _amount);
+        if (_amount > s_lendingPositions[msg.sender].s_collateral[_asset]) {
+            revert AmountExceedsLiability(_asset, s_lendingPositions[msg.sender].s_collateral[_asset], _amount);
         }
         uint256 usdAssetValue = _getUSDAssetValue(_asset);
         uint256 usdValueToWithdraw = _amount * usdAssetValue;
         address[] memory assets = s_depositedColleteralsByUser[msg.sender];
         uint256 totalUsdValue = _getAccumulatedAssetValue(assets);
         uint256 potentialUsdValue = totalUsdValue - usdValueToWithdraw;
-        uint256 healthFactor = _getHealthFactor(potentialUsdValue, s_sUSDBalanceUser[msg.sender]);
+        uint256 healthFactor = _getHealthFactor(potentialUsdValue, s_lendingPositions[msg.sender].sUsdMinted);
         if (healthFactor > 100) {
             // Effects
             s_backingAssets[_asset] -= _amount;
-            s_userLiabilities[msg.sender][_asset] -= _amount;
+            s_lendingPositions[msg.sender].s_collateral[_asset] -= _amount;
             s_userBalances[msg.sender][_asset] += _amount;
         } else {
             revert TooHighAsk(_amount);
@@ -140,25 +142,23 @@ abstract contract StableLending is Utils {
      */
     function liquidatePosition(address _user) external nonReentrant {
         uint256 totalUsdValueUser = _getUserPositionsValue(_user);
-        uint256 sUsdMintedUser = s_sUSDBalanceUser[_user];
+        uint256 sUsdMintedUser = s_lendingPositions[_user].sUsdMinted;
         uint256 healthFactor = _getHealthFactor(totalUsdValueUser, sUsdMintedUser);
         if (healthFactor <= LIQUIDATION_THRESHOLD) {
-            // Effects
-            s_sUSDBalanceUser[_user] = 0;
-            // Interactions
+            s_lendingPositions[_user].sUsdMinted = 0;
             IERC20(i_susd).safeTransferFrom(msg.sender, address(this), sUsdMintedUser);
             for (uint256 i; i < s_depositedColleteralsByUser[_user].length; i++) {
-                //Effects
-                uint256 amountToSend = s_userLiabilities[_user][s_depositedColleteralsByUser[_user][i]];
-                s_userLiabilities[_user][s_depositedColleteralsByUser[_user][i]] = 0;
-                //Interactions
+                uint256 amountToSend = s_lendingPositions[_user].s_collateral[s_depositedColleteralsByUser[_user][i]];
+                s_lendingPositions[_user].s_collateral[s_depositedColleteralsByUser[_user][i]] = 0;
                 if (amountToSend > 0) {
                     if (s_depositedColleteralsByUser[_user][i] == ETHER) {
-                        s_backingAssets[ETHER] -= s_userLiabilities[_user][s_depositedColleteralsByUser[_user][i]];
+                        s_backingAssets[ETHER] -=
+                            s_lendingPositions[_user].s_collateral[s_depositedColleteralsByUser[_user][i]];
                         (bool success,) = payable(msg.sender).call{value: amountToSend}("");
                         require(success, "Failed to send ether");
                     } else {
-                        s_backingAssets[ETHER] -= s_userLiabilities[_user][s_depositedColleteralsByUser[_user][i]];
+                        s_backingAssets[ETHER] -=
+                            s_lendingPositions[_user].s_collateral[s_depositedColleteralsByUser[_user][i]];
                         IERC20(s_depositedColleteralsByUser[_user][i]).safeTransfer(msg.sender, amountToSend);
                     }
                 }
@@ -179,7 +179,7 @@ abstract contract StableLending is Utils {
      */
     function isLiquidatable(address _user) external view returns (bool) {
         uint256 userUsdValue = _getUserPositionsValue(_user);
-        uint256 healthFactor = _getHealthFactor(userUsdValue, s_sUSDBalanceUser[_user]);
+        uint256 healthFactor = _getHealthFactor(userUsdValue, s_lendingPositions[_user].sUsdMinted);
         if (healthFactor > LIQUIDATION_THRESHOLD) {
             return false;
         } else {
@@ -187,9 +187,10 @@ abstract contract StableLending is Utils {
         }
     }
     /**
-     * @dev returns the Health Factor of StableLending in entirety. 
+     * @dev returns the Health Factor of StableLending in entirety.
      * Basically a proof of colleteralization.
      */
+
     function getStableLendingHealthFactor() external view returns (uint256) {
         uint256 totalUsdValue;
         for (uint256 i; i < allowlist.length; i++) {
@@ -209,7 +210,7 @@ abstract contract StableLending is Utils {
     function _getUserPositionsValue(address _user) internal view returns (uint256) {
         uint256 totalUsdValueUser;
         for (uint256 i; i < s_depositedColleteralsByUser[_user].length; i++) {
-            uint256 tokenCount = s_userLiabilities[_user][s_depositedColleteralsByUser[_user][i]];
+            uint256 tokenCount = s_lendingPositions[_user].s_collateral[s_depositedColleteralsByUser[_user][i]];
             uint256 usdValueToken = _getUSDAssetValue(s_depositedColleteralsByUser[_user][i]);
             totalUsdValueUser += tokenCount * usdValueToken;
         }
@@ -240,15 +241,5 @@ abstract contract StableLending is Utils {
     function _getHealthFactor(uint256 _usdValueUser, uint256 _amountMinted) internal pure returns (uint256) {
         uint256 healthFactor = (PRECISION_NOMINATOR * _usdValueUser) / (PRECISION_DENOMINATOR * _amountMinted);
         return healthFactor;
-    }
-
-    function _shiftColleteralAssets(address[] calldata _colleteral) internal {
-        for (uint256 i = 0; i < _colleteral.length; i++) {
-            address asset = _colleteral[i];
-            uint256 liabilities = s_userBalances[msg.sender][asset];
-            s_depositedColleteralsByUser[msg.sender].push(_colleteral[i]);
-            s_userBalances[msg.sender][asset] = 0;
-            s_userLiabilities[msg.sender][asset] = liabilities;
-        }
     }
 }

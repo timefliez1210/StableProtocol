@@ -11,6 +11,14 @@ import {MockOracle} from "./mocks/MockOracle.sol";
  * to provide a global accessable state between those modules.
  */
 abstract contract Utils is MockOracle {
+    struct LendingPosition {
+        mapping(address asset => uint256 collateral) s_collateral;
+        bool isStableLending;
+        uint256 sUsdMinted;
+        uint256 interestRate;
+        uint256 lastInterestUpdate;
+    }
+
     error NotOwner(address);
 
     address public constant ETHER = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -18,11 +26,10 @@ abstract contract Utils is MockOracle {
     address owner;
 
     address[] allowlist;
+    mapping(address user => LendingPosition) public s_lendingPositions;
     mapping(address asset => bool isAllowed) public s_whitelist;
     mapping(address asset => uint256 balance) public s_totalAssetBalances;
-    mapping(address user => uint256 sUSDMinted) s_sUSDBalanceUser;
     mapping(address user => mapping(address asset => uint256 userBalance)) public s_userBalances;
-    mapping(address user => mapping(address asset => uint256 liability)) public s_userLiabilities;
 
     ////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////// Reusable modifiers ///////////////////////////////

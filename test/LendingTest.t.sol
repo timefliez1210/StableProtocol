@@ -10,18 +10,24 @@ contract LendingTest is BaseTest {
     function test_fuzz_mintStableSuccess(uint256 amount) public {
         vm.assume(amount > 0);
         vm.assume(amount <= 10.156e21);
+        uint256[] memory amountColleteral = new uint256[](2);
+        amountColleteral[0] = 2e18;
+        amountColleteral[1] = 1e18;
         _userDeposits();
         vm.startPrank(users[1]);
-        stable.mintStable(amount, colleterals);
+        stable.mintStable(amount, amountColleteral, colleterals);
         vm.stopPrank();
     }
 
     function test_fuzz_mintStableFailToHighAsk(uint256 amount) public {
-        vm.assume(amount >= 10.156e21);
+        vm.assume(amount >= 11e21);
+        uint256[] memory amountColleteral = new uint256[](2);
+        amountColleteral[0] = 2e18;
+        amountColleteral[1] = 1e18;
         _userDeposits();
         vm.startPrank(users[1]);
         vm.expectRevert();
-        stable.mintStable(amount, colleterals);
+        stable.mintStable(amount, amountColleteral, colleterals);
         vm.stopPrank();
     }
 

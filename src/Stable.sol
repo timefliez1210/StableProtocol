@@ -11,7 +11,7 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 /**
  * @title Decentralized Stablecoin with mixed over-collateralisation
  * @author 0xTimefliez https://github.com/timefliez1210
- * @notice Entry logic, only handles direct deposits and withdraws, as well as admin functionality. All other Abstracts do not 
+ * @notice Entry logic, only handles direct deposits and withdraws, as well as admin functionality. All other Abstracts do not
  * interact with users in a way of receiving or sending funds (except liquidations)
  */
 contract Stable is Utils, StableLending {
