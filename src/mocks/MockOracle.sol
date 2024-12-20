@@ -9,7 +9,6 @@ contract MockOracle {
         price = _price;
     }
 
-
     function getPrice(address _asset) public view returns (uint256) {
         return price;
     }

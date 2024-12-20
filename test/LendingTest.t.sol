@@ -5,7 +5,6 @@ pragma solidity 0.8.28;
 import {BaseTest} from "./utils/BaseTest.t.sol";
 import {console} from "forge-std/Test.sol";
 
-
 contract LendingTest is BaseTest {
     address[] colleterals;
 
@@ -78,6 +77,15 @@ contract LendingTest is BaseTest {
         vm.stopPrank();
     }
 
+    function test_fuzz_repayStableIncreasesHealthFactor() public {}
+
+    function test_fuzz_liquidateUserSuccess() public {}
+
+    function test_fuzz_liquidateUserFail() public {}
+
+    function test_fuzz_donateSuccessAndIncreaseHealthFactor() public {}
+
+    function test_donateFails() public {}
 
     function _userDeposits() public {
         whitelistTokens();

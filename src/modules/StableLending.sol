@@ -71,7 +71,7 @@ abstract contract StableLending is Utils {
         external
     {
         if (_amountToMint == 0) {
-             for (uint256 i; i < _colleteral.length; i++) {
+            for (uint256 i; i < _colleteral.length; i++) {
                 // @todo add this into the struct and finish refactor
                 s_depositedColleteralsByUser[msg.sender].push(_colleteral[i]);
                 s_lendingPositions[msg.sender].s_collateral[_colleteral[i]] += _amountColleteral[i];
@@ -98,7 +98,7 @@ abstract contract StableLending is Utils {
             s_lendingPositions[msg.sender].isStableLending = true;
             s_lendingPositions[msg.sender].sUsdMinted += _amountToMint;
             i_susd.mint(msg.sender, _amountToMint);
-        }    
+        }
     }
 
     /**
@@ -185,7 +185,7 @@ abstract contract StableLending is Utils {
         }
         i_susd.burn(sUsdMintedUser);
     }
-    
+
     /**
      * @dev This function can be used in case of losing the peg of sUSD to restore the peg.
      * @notice should only called by owner to prevent misuse/loss of funds by accidentally calling it
@@ -195,7 +195,7 @@ abstract contract StableLending is Utils {
     function donate(uint256 _amount) external onlyOwner {
         IERC20(i_susd).safeTransferFrom(msg.sender, address(this), _amount);
         i_susd.burn(_amount);
-    }    
+    }
 
     //////////////////////////////
     //// View Functions
@@ -232,7 +232,7 @@ abstract contract StableLending is Utils {
         return healthFactor;
     }
 
-    function getSusdAddress() external view returns(address) {
+    function getSusdAddress() external view returns (address) {
         return address(i_susd);
     }
 
