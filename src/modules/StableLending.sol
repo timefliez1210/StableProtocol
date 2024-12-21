@@ -36,8 +36,8 @@ abstract contract StableLending is Utils {
     ////////////////////////////////////////////////////////////////////////////////
     //////////////////////// Constants & Immutables ////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
-    uint256 private constant PRECISION_NOMINATOR = 8000;
-    uint256 private constant PRECISION_DENOMINATOR = 100;
+    uint256 private constant PRECISION_NOMINATOR = 80;
+    uint256 private constant PRECISION_DENOMINATOR = 1;
     uint256 private constant LIQUIDATION_THRESHOLD = 95;
     StableUSD immutable i_susd;
 
@@ -72,7 +72,6 @@ abstract contract StableLending is Utils {
     {
         if (_amountToMint == 0) {
             for (uint256 i; i < _colleteral.length; i++) {
-                // @todo add this into the struct and finish refactor
                 s_depositedColleteralsByUser[msg.sender].push(_colleteral[i]);
                 s_lendingPositions[msg.sender].s_collateral[_colleteral[i]] += _amountColleteral[i];
                 s_userBalances[msg.sender][_colleteral[i]] -= _amountColleteral[i];
@@ -82,7 +81,6 @@ abstract contract StableLending is Utils {
             uint256 totalUsdValueUser;
             for (uint256 i; i < _colleteral.length; i++) {
                 uint256 usdValueAsset = _getUSDAssetValue(_colleteral[i]);
-                // @todo add this into the struct and finish refactor
                 s_depositedColleteralsByUser[msg.sender].push(_colleteral[i]);
                 totalUsdValueUser += _amountColleteral[i] * usdValueAsset;
                 s_lendingPositions[msg.sender].s_collateral[_colleteral[i]] += _amountColleteral[i];
@@ -132,13 +130,10 @@ abstract contract StableLending is Utils {
         if (_amount > s_lendingPositions[msg.sender].s_collateral[_asset]) {
             revert AmountExceedsLiability(_asset, s_lendingPositions[msg.sender].s_collateral[_asset], _amount);
         }
-        // get the value of the asset to unlock
         uint256 usdAssetValue = _getUSDAssetValue(_asset);
-        uint256 usdValueToWithdraw = _amount * usdAssetValue; /* until here no underfliw */
-        //get the value of all assets
+        uint256 usdValueToWithdraw = _amount * usdAssetValue; 
         address[] memory assets = s_depositedColleteralsByUser[msg.sender];
         uint256 totalUsdValue = _getAccumulatedAssetValue(assets);
-        // get health factor of the difference
         uint256 potentialUsdValue = totalUsdValue - usdValueToWithdraw;
         uint256 healthFactor = _getHealthFactor(potentialUsdValue, s_lendingPositions[msg.sender].sUsdMinted);
         if (healthFactor > 100) {
@@ -270,10 +265,10 @@ abstract contract StableLending is Utils {
         return totalUsdValueUser;
     }
 
-    function _getUSDAssetValue(address _asset) internal view returns (uint256) {
+    function _getUSDAssetValue(address _asset) public view returns (uint256) {
         uint256 usdValue;
         if (s_whitelist[_asset]) {
-            usdValue = getPrice(_asset);
+            usdValue = getPrice();
         } else {
             revert NotSupportedAsset(_asset);
         }

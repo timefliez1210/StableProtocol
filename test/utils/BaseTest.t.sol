@@ -7,6 +7,7 @@ import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Stable} from "../../src/Stable.sol";
 import {StableUSD} from "../../src/tokens/StableUSD.sol";
 import {Utils} from "../../src/Utils.sol";
+import {MockOracle} from "../../src/mocks/MockOracle.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -17,6 +18,9 @@ contract BaseTest is Test, Utils {
     IERC20 sUSD;
 
     Stable stable;
+    MockOracle oracle;
+    uint256 constant INITIAL_PRICE = 4232;
+    
 
     function setUp() public {
         owner = makeAddr("owner");
@@ -26,6 +30,8 @@ contract BaseTest is Test, Utils {
         wbtc = new ERC20Mock();
         makeUsers(5);
         sUSD = IERC20(stable.getSusdAddress());
+        oracle = new MockOracle();
+        oracle.setPriceWeth(INITIAL_PRICE);
     }
 
     function makeUsers(uint256 _userCount) internal {
