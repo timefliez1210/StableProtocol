@@ -54,30 +54,28 @@ contract LendingTest is BaseTest {
         vm.stopPrank();
     }
 
-    // function test_fuzz_unlockColleteralFail(uint256 amountToDeposit, uint256 amountToUnlock) public {
-    //     vm.assume(amountToDeposit > 1e18);
-    //     vm.assume(amountToDeposit <= 10.156e21);
-    //     vm.assume(amountToUnlock > amountToDeposit);
-    //     vm.assume(amountToUnlock <= 10.156e21);
-    //     uint256[] memory amountColleteral = new uint256[](2);
-    //     address[] memory newColleteral = new address[](1);
-    //     newColleteral[0] = address(weth);
-    //     amountColleteral[0] = 2e18;
-    //     amountColleteral[1] = 1e18;
-    //     _userDeposits();
-    //     weth.mint(users[1], 3e18);
-    //     wbtc.mint(users[1], 3e18);
-    //     vm.startPrank(users[1]);
-    //     stable.mintStable(amountToDeposit, amountColleteral, colleterals);
-    //     console.log(sUSD.balanceOf(users[1]));
-    //     uint256 healthFactor = stable.getHealthFactor(users[1]);
-    //     console.log(healthFactor);
-    //     vm.expectRevert();
-    //     stable.unlockColleteral(address(wbtc), amountToUnlock);
-    //     healthFactor = stable.getHealthFactor(users[1]);
-    //     console.log(healthFactor);
-    //     vm.stopPrank();
-    // }
+    function test_fuzz_unlockColleteralFail(uint256 amountToDeposit, uint256 amountToUnlock) public {
+        amountToDeposit = bound(amountToDeposit, 1e18, 9e21);
+        amountToUnlock = bound(amountToUnlock, amountToDeposit, 10.156e21);
+        uint256[] memory amountColleteral = new uint256[](2);
+        address[] memory newColleteral = new address[](1);
+        newColleteral[0] = address(weth);
+        amountColleteral[0] = 2e18;
+        amountColleteral[1] = 1e18;
+        _userDeposits();
+        weth.mint(users[1], 3e18);
+        wbtc.mint(users[1], 3e18);
+        vm.startPrank(users[1]);
+        stable.mintStable(amountToDeposit, amountColleteral, colleterals);
+        console.log(sUSD.balanceOf(users[1]));
+        uint256 healthFactor = stable.getHealthFactor(users[1]);
+        console.log(healthFactor);
+        vm.expectRevert();
+        stable.unlockColleteral(address(wbtc), amountToUnlock);
+        healthFactor = stable.getHealthFactor(users[1]);
+        console.log(healthFactor);
+        vm.stopPrank();
+    }
 
     function test_fuzz_repayStableIncreasesHealthFactor(uint256 amountToDeposit) public {
         vm.assume(amountToDeposit > 1e18);
@@ -164,6 +162,29 @@ contract LendingTest is BaseTest {
     }
 
     function test_fuzz_donateSuccessAndIncreaseHealthFactor() public {
+        weth.mint(owner, 10e18);
+        wbtc.mint(owner, 10e18);
+        uint256[] memory amountColleteral = new uint256[](2);
+        amountColleteral[0] = 10e18;
+        amountColleteral[1] = 10e18;
+        address[] memory newColleteral = new address[](2);
+        newColleteral[0] = address(weth);
+        newColleteral[1] = address(wbtc);
+        whitelistTokens();
+        vm.startPrank(owner);
+        weth.approve(address(stable), 10e18);
+        wbtc.approve(address(stable), 10e18);
+        stable.deposit(address(weth), 10e18);
+        stable.deposit(address(wbtc), 10e18);
+        stable.mintStable(10.156e21, amountColleteral, newColleteral);
+        uint256 protocolHealthBefore = stable.getStableLendingHealthFactor();
+        console.log(protocolHealthBefore);
+        sUSD.approve(address(stable), type(uint256).max);
+        stable.donate(10e21);
+        uint256 protocolHealthAfter = stable.getStableLendingHealthFactor();
+        console.log(protocolHealthAfter);
+        assert(protocolHealthAfter > protocolHealthBefore);
+        vm.stopPrank();
     }
 
     function test_donateFails() public {

@@ -131,7 +131,7 @@ abstract contract StableLending is Utils {
             revert AmountExceedsLiability(_asset, s_lendingPositions[msg.sender].s_collateral[_asset], _amount);
         }
         uint256 usdAssetValue = _getUSDAssetValue(_asset);
-        uint256 usdValueToWithdraw = _amount * usdAssetValue; 
+        uint256 usdValueToWithdraw = _amount * usdAssetValue;
         address[] memory assets = s_depositedColleteralsByUser[msg.sender];
         uint256 totalUsdValue = _getAccumulatedAssetValue(assets);
         uint256 potentialUsdValue = totalUsdValue - usdValueToWithdraw;

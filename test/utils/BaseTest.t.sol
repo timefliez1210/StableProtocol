@@ -20,7 +20,6 @@ contract BaseTest is Test, Utils {
     Stable stable;
     MockOracle oracle;
     uint256 constant INITIAL_PRICE = 4232;
-    
 
     function setUp() public {
         owner = makeAddr("owner");
