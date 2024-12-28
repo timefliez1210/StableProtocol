@@ -1,0 +1,78 @@
+[
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000030000",
+   "to": "0x0000000000000000000000000000000000050000",
+   "nonce": 2,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x7dd99831c9f274ae449ef843385eca1d84edabb060d8dc7a6dc501c6197dc46eb57eaf53",
+   "dataAbiValues": {
+    "methodSignature": "setPriceWeth(uint256)",
+    "inputValues": [
+     "91343264855746493066467044768001071123374827129535906000025434002968396345171"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": true
+  },
+  "blockNumberDelay": 42330,
+  "blockTimestampDelay": 65023
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000020000",
+   "to": "0x9bafd307270677a3c3654b40f3f43a043b81f284",
+   "nonce": 0,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x7625ea1031002b44a1ee776939d477f595eca1bf9eecd6a6a92db4262184ca59129bb2e800000000000000000000000000000000000000000000000000000000000000595aaeca47e515675022f8aa8d905f10d7bfcf7dea4b38439f3b27cc33b4164a66",
+   "dataAbiValues": {
+    "methodSignature": "between(uint256,uint256,uint256)",
+    "inputValues": [
+     "22163628206002716756718503815791427663545875075294613503306052578091380486888",
+     "89",
+     "41016983852808998597196880083327412450490548077996079534289961980164121709158"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": true
+  },
+  "blockNumberDelay": 35352,
+  "blockTimestampDelay": 411594
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000030000",
+   "to": "0x9bafd307270677a3c3654b40f3f43a043b81f284",
+   "nonce": 3,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x5c34e23352fc7a57714ee782b8097c709d2b07e37c02e933b667fa7bfca5e747935626f40000000000000000000000000000000000000000000000000000000000004268ce48f2357874d5e56c3b6b57eaa4e0820e6cb6088e13b8e90837f70a311a8fc9000000000000000000000000000000000000000000000000000000000000003f",
+   "dataAbiValues": {
+    "methodSignature": "testMintStable(uint256,uint256[3])",
+    "inputValues": [
+     "37535743414654413509194051783281323682253698895553277750006880407158183569140",
+     [
+      "17000",
+      "93305331460995554702357988228820026268956727046044403200393299092307516755913",
+      "63"
+     ]
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": true
+  },
+  "blockNumberDelay": 42950,
+  "blockTimestampDelay": 91932
+ }
+]

@@ -67,7 +67,7 @@ abstract contract StableLending is Utils {
      * @param _colleteral array of colleteral address to move from balance -> liabilities backing the position
      * Important: the order of the colleteral and amounts must match => colleteral[0] => amountColleteral[0]
      */
-    function mintStable(uint256 _amountToMint, uint256[] calldata _amountColleteral, address[] calldata _colleteral)
+    function mintStable(uint256 _amountToMint, uint256[3] calldata _amountColleteral, address[3] calldata _colleteral)
         external
     {
         if (_amountToMint == 0) {

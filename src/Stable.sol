@@ -25,6 +25,7 @@ contract Stable is Utils, StableLending {
     constructor() {
         owner = msg.sender;
         s_whitelist[0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE] = true;
+        allowlist.push(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     }
 
     ////////////////////////////////////////////////////////////////////////////////

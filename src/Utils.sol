@@ -25,7 +25,7 @@ abstract contract Utils is MockOracle {
     uint256 public constant MIN_DEPOSIT_ETH = 1e6;
     address owner;
 
-    address[] allowlist;
+    address[] public allowlist;
     mapping(address user => LendingPosition) public s_lendingPositions;
     mapping(address asset => bool isAllowed) public s_whitelist;
     mapping(address asset => uint256 balance) public s_totalAssetBalances;
